@@ -1,13 +1,157 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.cart-app-header {
+    width: 50%;
+    margin: auto;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.cart-items, .header-cart-items {
+    display: flex;
+    flex-direction: column;
 }
+
+.header-cart-items {
+    align-items: center;
+}
+
+.ant-page-header-heading-extra {
+    display:flex;
+}
+
+.ant-popover {
+    width:35vw;
+}
+
+.ant-popover-inner, .ant-popover-arrow-content {
+    background: #c8ddd9;
+
+}
+
+.header-cart-icon {
+    font-size: 70px;
+}
+
+.cart-item, .cart-product-description, .cart-product-detail {
+    display: flex;
+}
+
+.cart-product-description {
+    align-items: center;
+    min-width: 10vw;
+    justify-content: space-between;
+
+}
+
+.cart-items :first-child {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.cart-items :Last-child {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.cart-item {
+    justify-content:space-between;
+    height: 65px;
+}
+
+.cart-drop-down {
+    width:35vw;
+}
+
+.cart-item-icon {
+    font-size: 22px;
+}
+
+.cart-product-detail {
+    justify-content: space-between;
+    align-items: center;
+    min-width: 4vw;
+}
+
+.product-detail {
+    display: flex;
+    flex-direction: column;
+    width: 60vw;
+    justify-content: center;
+    margin: auto;
+}
+
+.product-item {
+    justify-content: space-between;
+    height: 65px;
+}
+
+.item-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.item-details :first-child {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.item-details :Last-child {
+    font-size: 14px;
+}
+
+.product-item, .product-description, .item-details, .product-item-price {
+    display: flex;
+}
+
+.cart-product-description {
+    align-items: center;
+    min-width: 10vw;
+    justify-content: space-between;
+
+}
+
+.product-item-icon {
+    font-size: 70px;
+}
+
+.product-description {
+    align-items: center;
+    max-width: 35vw;
+    justify-content: flex-start;
+}
+
+.product-description :first-child {
+    margin-right: 5px;
+}
+
+.product-item-price {
+    justify-content: space-between;
+    align-items: center;
+    min-width: 15vw;
+}
+
+.ant-card-bordered {
+    margin: 10px;
+    background: #f3f3f3;
+}
+
+.product-quantity {
+    width:45px;
+}
+
+.product-price {
+    font-size: 20px;
+}
+
+.header-cart-box-icon {
+    margin-left: 4px;
+}
+
+.header-cart-items {
+    font-size: 25px;
+}
+
+.header-cart-action {
+    cursor: pointer;
+    font-size:16px;
+}
+
+
