@@ -16,7 +16,7 @@ class CartDetail extends React.Component {
     getCartButtonText = () => {
         return (
             <span className="header-cart-action">
-                <span>{`${this.props.cartItems.length} Items`}</span>
+                <span>{`${this.props.totalItems} Items`}</span>
                 <CaretDownOutlined className="header-cart-box-icon"/>
             </span>
         );
@@ -58,7 +58,10 @@ class CartDetail extends React.Component {
 
 const mapStateToProps = (state) => {
     return {
-        cartItems: state.cartItems
+        cartItems: state.cartItems,
+        totalItems: state.cartItems.reduce((acc, prod) => {
+            return acc + prod.quantity;
+        }, 0)
     }
 }
 
