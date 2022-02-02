@@ -16,7 +16,6 @@ export const axiosHTTP = axios.create(
     }
 );
 
-
 export const getCartItems = async () => {
     try {
         return (localStorage.getItem('CART_ITEMS') ? JSON.parse(localStorage.getItem('CART_ITEMS')): null);
@@ -32,3 +31,28 @@ export const saveCartDataInLocalStorage = (cartItems) => {
         localStorage.removeItem("CART_ITEMS");
     }
 }
+
+export const getSavedResponse = () => {
+    return {
+        "products": [
+            {
+                "id": "123442",
+                "title": "Product 1",
+                "desc": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
+                "image": "/product1.jpeg",
+                "price": "39",
+                "currency": "$"
+            },
+            {
+                "id": "123443",
+                "title": "Product 2",
+                "desc": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
+                "image": "/product2.jpeg",
+                "price": "39",
+                "currency": "$"
+            }
+        ]
+    };
+}
+
+
