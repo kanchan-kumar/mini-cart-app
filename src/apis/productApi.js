@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const BASE_URL = 'https://dnc0cmt2n557n.cloudfront.net';
-export const PROXY_FOR_CORS_DEV_ONLY = "https://thingproxy.freeboard.io/fetch/";
+export const PROXY_FOR_CORS_DEV_ONLY = "";
 
 export const axiosHTTP = axios.create(
     {
