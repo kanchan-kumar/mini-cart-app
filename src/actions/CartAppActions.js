@@ -1,14 +1,8 @@
-import {axiosHTTP, getCartItems, getSavedResponse} from "../apis/productApi";
+import {axiosHTTP, getCartItems, getProducts, getSavedResponse} from "../apis/productApi";
 
 export const fetchProducts = () => {
     return async (dispatch, getState) => {
-        let response = null;
-        try {
-            /*Can failed due to cross origin*/
-            response = await axiosHTTP('/products.json');
-        } catch (e) {
-            response = {data: getSavedResponse()};
-        }
+        const response = await getProducts('/products.json');
 
         /*Product default state have 1 quantity.*/
         const products = response.data.products.map(item => {
@@ -28,7 +22,7 @@ export const fetchCartItems = () => {
         let cartItems = await getCartItems();
 
         if (! cartItems) {
-            const response = await axiosHTTP('/products.json');
+            const response = await getProducts('/products.json');
             cartItems = response.data.products;
             cartItems = cartItems.map(item => {
                 item.quantity = 1;

@@ -32,6 +32,16 @@ export const saveCartDataInLocalStorage = (cartItems) => {
     }
 }
 
+export const getProducts = async () => {
+    try {
+        /*Can failed due to cross origin*/
+        return await axiosHTTP('/products.json');
+    } catch (e) {
+       return {data: getSavedResponse()};
+    }
+
+}
+
 export const getSavedResponse = () => {
     return {
         "products": [
