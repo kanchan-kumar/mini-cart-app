@@ -38,4 +38,33 @@
 
 
 
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>3.2.0</version>
+            <executions>
+                <execution>
+                    <id>add-generated-sources</id>
+                    <phase>generate-sources</phase>
+                    <goals>
+                        <goal>copy-resources</goal>
+                    </goals>
+                    <configuration>
+                        <outputDirectory>${project.build.sourceDirectory}</outputDirectory>
+                        <resources>
+                            <resource>
+                                <directory>${project.build.directory}/generated-sources/xjc</directory>
+                            </resource>
+                        </resources>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+
+
+
 
