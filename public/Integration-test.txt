@@ -1,0 +1,114 @@
+package com.example.demo;
+
+import com.example.demo.kafka.KafkaProducer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+@EmbeddedKafka(partitions = 1, controlledShutdown = true, brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "port=9092"})
+public class KafkaIntegrationTest {
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Autowired
+    private KafkaProducer kafkaProducer;
+
+    private static KafkaConsumer<String, String> consumer;
+
+    @BeforeAll
+    public static void setUp() {
+        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps("group_id", "false", embeddedKafkaBroker);
+        consumerProps.put("key.deserializer", StringDeserializer.class);
+        consumerProps.put("value.deserializer", StringDeserializer.class);
+        consumer = new KafkaConsumer<>(consumerProps);
+        consumer.subscribe(Collections.singletonList("test-topic"));
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        consumer.close();
+    }
+
+    @Test
+    public void givenEmbeddedKafkaBroker_whenSendingWithKafkaProducer_thenMessageReceived() {
+        String message = "Hello, Kafka!";
+        kafkaProducer.sendMessage("test-topic", message);
+
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer);
+        assertThat(records.count()).isGreaterThan(0);
+
+        for (ConsumerRecord<String, String> record : records) {
+            assertThat(record.value()).isEqualTo(message);
+        }
+    }
+
+    @Test
+    public void givenEmbeddedKafkaBroker_whenSendingInvalidMessage_thenNoMessageReceived() {
+        String message = null; // Invalid message
+        kafkaProducer.sendMessage("test-topic", message);
+
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer, 1000);
+        assertThat(records.count()).isEqualTo(0);
+    }
+
+    @Test
+    public void givenEmbeddedKafkaBroker_whenSendingMultipleMessages_thenAllMessagesReceived() {
+        List<String> messages = Arrays.asList("Message 1", "Message 2", "Message 3");
+        for (String message : messages) {
+            kafkaProducer.sendMessage("test-topic", message);
+        }
+
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer);
+        List<String> receivedMessages = new ArrayList<>();
+        for (ConsumerRecord<String, String> record : records) {
+            receivedMessages.add(record.value());
+        }
+
+        assertThat(receivedMessages).containsExactlyInAnyOrderElementsOf(messages);
+    }
+
+    @Test
+    public void givenEmbeddedKafkaBroker_whenSendingMessages_thenErrorHandledGracefully() {
+        // This example assumes we have some error handling logic in the consumer
+        String validMessage = "Valid Message";
+        String invalidMessage = null; // Invalid message
+
+        // Send a valid message
+        kafkaProducer.sendMessage("test-topic", validMessage);
+
+        // Simulate sending an invalid message
+        try {
+            kafkaProducer.sendMessage("test-topic", invalidMessage);
+        } catch (Exception e) {
+            System.out.println("Handled invalid message gracefully");
+        }
+
+        // Ensure the valid message is received
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer);
+        List<String> receivedMessages = new ArrayList<>();
+        for (ConsumerRecord<String, String> record : records) {
+            receivedMessages.add(record.value());
+        }
+
+        assertThat(receivedMessages).contains(validMessage);
+        assertThat(receivedMessages).doesNotContain(invalidMessage);
+    }
+}
