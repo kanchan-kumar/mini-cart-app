@@ -1,0 +1,57 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.ehcache.org/v3"
+        xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd">
+
+    <persistence directory="spring-boot-ehcache"/>
+
+    <cache-template name="default">
+        <expiry>
+            <ttl unit="seconds">600</ttl>
+        </expiry>
+        <listeners>
+            <listener>
+                <class>com.example.CacheEventLogger</class>
+                <event-firing-mode>ASYNCHRONOUS</event-firing-mode>
+                <event-ordering-mode>UNORDERED</event-ordering-mode>
+                <events-to-fire-on>CREATED</events-to-fire-on>
+                <events-to-fire-on>EXPIRED</events-to-fire-on>
+            </listener>
+        </listeners>
+        <resources>
+            <heap unit="entries">2000</heap>
+            <offheap unit="MB">100</offheap>
+            <disk unit="MB" persistent="true">250</disk>
+        </resources>
+    </cache-template>
+
+    <cache alias="usersCache" uses-template="default">
+        <key-type>java.lang.Long</key-type>
+        <value-type>com.example.User</value-type>
+    </cache>
+</config>
+
+
+
+
+
+
+
+
+  import org.ehcache.event.CacheEvent;
+import org.ehcache.event.CacheEventListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class CacheEventLogger implements CacheEventListener<Object, Object> {
+
+    private static final Logger logger = LoggerFactory.getLogger(CacheEventLogger.class);
+
+    @Override
+    public void onEvent(CacheEvent<?, ?> cacheEvent) {
+        logger.info("Cache event {} for item with key {}. Old value = {}, New value = {}",
+                cacheEvent.getType(),
+                cacheEvent.getKey(),
+                cacheEvent.getOldValue(),
+                cacheEvent.getNewValue());
+    }
+}
