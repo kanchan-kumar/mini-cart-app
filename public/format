@@ -1,0 +1,31 @@
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.MessageFormat;
+
+public class ExceptionUtils {
+
+    /**
+     * Formats a message with an exception and additional arguments.
+     *
+     * @param pattern   The message pattern with placeholders.
+     * @param exception The exception to be included.
+     * @param arguments Additional arguments to be included in the message.
+     * @return A formatted string with the message, exception details, and additional arguments.
+     */
+    public static String formatMessage(String pattern, Exception exception, Object... arguments) {
+        StringWriter stringWriter = new StringWriter();
+        exception.printStackTrace(new PrintWriter(stringWriter));
+        
+        // Prepare the full pattern with placeholders for exception details
+        String fullPattern = pattern + "\nException: {0}\nStack Trace:\n{1}";
+        
+        // Combine arguments with exception details
+        Object[] fullArguments = new Object[arguments.length + 2];
+        System.arraycopy(arguments, 0, fullArguments, 0, arguments.length);
+        fullArguments[arguments.length] = exception.getMessage();
+        fullArguments[arguments.length + 1] = stringWriter.toString();
+        
+        // Format the message using MessageFormat
+        return MessageFormat.format(fullPattern, fullArguments);
+    }
+}
