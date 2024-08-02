@@ -1,0 +1,97 @@
+package com.example.export;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.sql.*;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.YearMonth;
+
+@Service
+public class ExportService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public void exportDataToExcel(int startYear, int endYear) {
+        try {
+            Workbook workbook = new XSSFWorkbook();
+
+            for (int year = startYear; year <= endYear; year++) {
+                for (int month = 1; month <= 12; month++) {
+                    LocalDate lastWorkingDay = getLastWorkingDay(year, month);
+                    executeStoredProcedure(workbook, lastWorkingDay);
+                }
+            }
+
+            try (FileOutputStream fileOut = new FileOutputStream("data.xlsx")) {
+                workbook.write(fileOut);
+            }
+
+            System.out.println("Data exported to Excel successfully.");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private LocalDate getLastWorkingDay(int year, int month) {
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate lastDay = yearMonth.atEndOfMonth();
+
+        while (lastDay.getDayOfWeek() == DayOfWeek.SATURDAY || lastDay.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            lastDay = lastDay.minusDays(1);
+        }
+
+        return lastDay;
+    }
+
+    private void executeStoredProcedure(Workbook workbook, LocalDate date) {
+        jdbcTemplate.execute((Connection connection) -> {
+            try (CallableStatement callableStatement = connection.prepareCall("{call YourStoredProcedure(?)}")) {
+                callableStatement.setDate(1, Date.valueOf(date));
+                try (ResultSet resultSet = callableStatement.executeQuery()) {
+                    Sheet sheet = workbook.getSheet(String.valueOf(date.getYear()));
+                    if (sheet == null) {
+                        sheet = workbook.createSheet(String.valueOf(date.getYear()));
+                        createHeaderRow(sheet, resultSet.getMetaData());
+                    }
+                    writeDataRows(sheet, resultSet);
+                    autoSizeColumns(sheet, resultSet.getMetaData().getColumnCount());
+                }
+            }
+            return null;
+        });
+    }
+
+    private void createHeaderRow(Sheet sheet, ResultSetMetaData metaData) throws SQLException {
+        Row headerRow = sheet.createRow(0);
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            Cell cell = headerRow.createCell(i - 1);
+            cell.setCellValue(metaData.getColumnName(i));
+        }
+    }
+
+    private void writeDataRows(Sheet sheet, ResultSet resultSet) throws SQLException {
+        int rowNum = sheet.getLastRowNum() + 1;
+        while (resultSet.next()) {
+            Row row = sheet.createRow(rowNum++);
+            for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                Cell cell = row.createCell(i - 1);
+                cell.setCellValue(resultSet.getString(i));
+            }
+        }
+    }
+
+    private void autoSizeColumns(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+}
