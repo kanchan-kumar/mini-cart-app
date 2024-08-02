@@ -1,0 +1,149 @@
+package com.example.export;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.sql.*;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.YearMonth;
+
+@Service
+public class ExportService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public void exportDataToExcel(int startYear, int endYear) {
+        try {
+            Workbook workbook = new XSSFWorkbook();
+
+            for (int year = startYear; year <= endYear; year++) {
+                for (int month = 1; month <= 12; month++) {
+                    LocalDate lastWorkingDay = getLastWorkingDay(year, month);
+                    executeStoredProcedure(workbook, lastWorkingDay);
+                }
+            }
+
+            try (FileOutputStream fileOut = new FileOutputStream("data.xlsx")) {
+                workbook.write(fileOut);
+            }
+
+            System.out.println("Data exported to Excel successfully.");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private LocalDate getLastWorkingDay(int year, int month) {
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate lastDay = yearMonth.atEndOfMonth();
+
+        while (lastDay.getDayOfWeek() == DayOfWeek.SATURDAY || lastDay.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            lastDay = lastDay.minusDays(1);
+        }
+
+        return lastDay;
+    }
+
+    private void executeStoredProcedure(Workbook workbook, LocalDate date) {
+        jdbcTemplate.execute((Connection connection) -> {
+            try (CallableStatement callableStatement = connection.prepareCall("{call YourStoredProcedure(?)}")) {
+                callableStatement.setDate(1, Date.valueOf(date));
+                try (ResultSet resultSet = callableStatement.executeQuery()) {
+                    Sheet sheet = workbook.getSheet(String.valueOf(date.getYear()));
+                    if (sheet == null) {
+                        sheet = workbook.createSheet(String.valueOf(date.getYear()));
+                        createHeaderRow(sheet, resultSet.getMetaData(), workbook);
+                    }
+                    writeDataRows(sheet, resultSet, workbook);
+                    autoSizeColumns(sheet, resultSet.getMetaData().getColumnCount());
+                }
+            }
+            return null;
+        });
+    }
+
+    private void createHeaderRow(Sheet sheet, ResultSetMetaData metaData, Workbook workbook) throws SQLException {
+        Row headerRow = sheet.createRow(0);
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        headerStyle.setFont(font);
+
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            Cell cell = headerRow.createCell(i - 1);
+            cell.setCellValue(metaData.getColumnName(i));
+            cell.setCellStyle(headerStyle);
+        }
+    }
+
+    private void writeDataRows(Sheet sheet, ResultSet resultSet, Workbook workbook) throws SQLException {
+        CellStyle dateCellStyle = createDateCellStyle(workbook);
+        CellStyle numericCellStyle = createNumericCellStyle(workbook);
+        CellStyle textCellStyle = createTextCellStyle(workbook);
+
+        int rowNum = sheet.getLastRowNum() + 1;
+        ResultSetMetaData metaData = resultSet.getMetaData();
+
+        while (resultSet.next()) {
+            Row row = sheet.createRow(rowNum++);
+            for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                Cell cell = row.createCell(i - 1);
+                int columnType = metaData.getColumnType(i);
+
+                switch (columnType) {
+                    case Types.DATE:
+                    case Types.TIMESTAMP:
+                        cell.setCellValue(resultSet.getDate(i));
+                        cell.setCellStyle(dateCellStyle);
+                        break;
+                    case Types.NUMERIC:
+                    case Types.DECIMAL:
+                    case Types.INTEGER:
+                    case Types.FLOAT:
+                    case Types.DOUBLE:
+                        cell.setCellValue(resultSet.getDouble(i));
+                        cell.setCellStyle(numericCellStyle);
+                        break;
+                    default:
+                        cell.setCellValue(resultSet.getString(i));
+                        cell.setCellStyle(textCellStyle);
+                        break;
+                }
+            }
+        }
+    }
+
+    private CellStyle createDateCellStyle(Workbook workbook) {
+        CellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.setAlignment(HorizontalAlignment.CENTER);
+        CreationHelper createHelper = workbook.getCreationHelper();
+        cellStyle.setDataFormat(createHelper.createDataFormat().getFormat("yyyy-mm-dd"));
+        return cellStyle;
+    }
+
+    private CellStyle createNumericCellStyle(Workbook workbook) {
+        CellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.setAlignment(HorizontalAlignment.RIGHT);
+        return cellStyle;
+    }
+
+    private CellStyle createTextCellStyle(Workbook workbook) {
+        CellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.setAlignment(HorizontalAlignment.LEFT);
+        return cellStyle;
+    }
+
+    private void autoSizeColumns(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+}
