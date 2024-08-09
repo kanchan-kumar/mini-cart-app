@@ -1,0 +1,66 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import java.util.Iterator;
+import java.util.Map.Entry;
+
+public class JsonSnakeToCamelCaseConverter {
+
+    public static void main(String[] args) throws Exception {
+        String json = "{ \"employee_id\": 1, \"first_name\": \"John\", \"last_name\": \"Doe\", \"date_of_birth\": \"1985-02-15\", \"salary\": 50000 }";
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Parse the JSON string into a JsonNode
+        JsonNode rootNode = mapper.readTree(json);
+
+        // Convert the keys to camelCase
+        JsonNode camelCaseNode = convertKeysToCamelCase(rootNode);
+
+        // Convert the JsonNode back to JSON string
+        String camelCaseJson = mapper.writeValueAsString(camelCaseNode);
+
+        // Print the result
+        System.out.println(camelCaseJson);
+    }
+
+    private static JsonNode convertKeysToCamelCase(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode resultNode = mapper.createObjectNode();
+
+            Iterator<Entry<String, JsonNode>> fields = objectNode.fields();
+            while (fields.hasNext()) {
+                Entry<String, JsonNode> field = fields.next();
+                String camelCaseKey = toCamelCase(field.getKey());
+                resultNode.set(camelCaseKey, convertKeysToCamelCase(field.getValue()));
+            }
+            return resultNode;
+        } else if (node.isArray()) {
+            for (int i = 0; i < node.size(); i++) {
+                ((ObjectNode) node).set(i, convertKeysToCamelCase(node.get(i)));
+            }
+        }
+        return node;
+    }
+
+    private static String toCamelCase(String s) {
+        StringBuilder result = new StringBuilder();
+        boolean nextIsUpper = false;
+
+        for (char c : s.toCharArray()) {
+            if (c == '_') {
+                nextIsUpper = true;
+            } else if (nextIsUpper) {
+                result.append(Character.toUpperCase(c));
+                nextIsUpper = false;
+            } else {
+                result.append(Character.toLowerCase(c));
+            }
+        }
+
+        return result.toString();
+    }
+}
