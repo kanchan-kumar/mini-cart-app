@@ -1,0 +1,39 @@
+CREATE TYPE dbo.MyTableType AS TABLE
+(
+    ID INT,
+    Name NVARCHAR(100),
+    Age INT
+);
+
+
+CREATE PROCEDURE UpsertRecords
+    @MyTableType dbo.MyTableType READONLY
+AS
+BEGIN
+    -- Use MERGE to either update or insert the records
+    MERGE INTO YourTable AS target
+    USING @MyTableType AS source
+    ON (target.ID = source.ID)
+    WHEN MATCHED THEN
+        -- Update the record if it exists
+        UPDATE SET
+            Name = source.Name,
+            Age = source.Age
+    WHEN NOT MATCHED THEN
+        -- Insert a new record if it doesn't exist
+        INSERT (ID, Name, Age)
+        VALUES (source.ID, source.Name, source.Age);
+END;
+
+
+-- Declare a variable of the table type
+DECLARE @MyRecords dbo.MyTableType;
+
+-- Insert data into the table-valued parameter
+INSERT INTO @MyRecords (ID, Name, Age)
+VALUES (1, 'John Doe', 30),
+       (2, 'Jane Smith', 25),
+       (3, 'Mike Brown', 40);
+
+-- Call the stored procedure with the TVP
+EXEC UpsertRecords @MyTableType = @MyRecords;
