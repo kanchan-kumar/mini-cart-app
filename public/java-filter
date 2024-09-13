@@ -10,3 +10,24 @@
             .collect(Collectors.toList());  // Convert back to list
     }
 
+
+ // Common utility method to filter duplicates by key and log duplicates
+    public static <T> List<T> filterAndLogDuplicates(List<T> list, Function<? super T, Object> keyExtractor) {
+        Set<Object> seen = new HashSet<>();
+
+        return list.stream()
+            .filter(item -> {
+                Object key = keyExtractor.apply(item);
+                if (key == null || (key instanceof String && ((String) key).isEmpty())) {
+                    logger.info("Skipped record with null or empty key: " + item);
+                    return false;
+                }
+
+                boolean isAdded = seen.add(key);
+                if (!isAdded) {
+                    logger.warning("Duplicate found: " + item);
+                }
+                return isAdded;
+            })
+            .collect(Collectors.toList());
+    }
