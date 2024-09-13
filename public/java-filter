@@ -1,0 +1,12 @@
+    public static <T> List<T> overrideDuplicatesByKey(List<T> list, Function<? super T, String> keyExtractor) {
+        return list.stream()
+            .filter(person -> keyExtractor.apply(person) != null && !keyExtractor.apply(person).isEmpty()) // Filter out null/empty ids
+            .collect(Collectors.toMap(
+                keyExtractor,    // Key extractor function (e.g., Person::getId)
+                Function.identity(),   // Value mapper (the actual object)
+                (existing, replacement) -> replacement  // Merge function: replace old with new on duplicates
+            ))
+            .values().stream()  // Get the values of the map (unique records)
+            .collect(Collectors.toList());  // Convert back to list
+    }
+
