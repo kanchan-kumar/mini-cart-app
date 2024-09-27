@@ -52,13 +52,17 @@ public class CSVComparator {
     public static Map<String, Map<String, String>> readCSV(String fileName, List<String> keyColumns) throws IOException {
         Map<String, Map<String, String>> data = new HashMap<>();
         BufferedReader reader = new BufferedReader(new FileReader(fileName));
-        String[] headers = reader.readLine().split(",");
+        
+        // Read headers
+        String headerLine = reader.readLine();
+        List<String> headers = parseLine(headerLine);
+
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] values = line.split(",");
+            List<String> values = parseLine(line);
             Map<String, String> row = new HashMap<>();
-            for (int i = 0; i < headers.length; i++) {
-                row.put(headers[i], values[i]);
+            for (int i = 0; i < headers.size(); i++) {
+                row.put(headers.get(i), values.get(i));
             }
             // Create a unique key from the specified columns
             String key = createKey(row, keyColumns);
@@ -98,6 +102,16 @@ public class CSVComparator {
             }
         }
         return mismatchDetails.toString().trim();
+    }
+
+    // Parse a line using StringTokenizer and trim spaces
+    public static List<String> parseLine(String line) {
+        List<String> tokens = new ArrayList<>();
+        StringTokenizer tokenizer = new StringTokenizer(line, ",");
+        while (tokenizer.hasMoreTokens()) {
+            tokens.add(tokenizer.nextToken().trim());
+        }
+        return tokens;
     }
 
     // Write CSV data to a file
