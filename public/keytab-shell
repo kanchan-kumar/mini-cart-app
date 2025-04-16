@@ -1,0 +1,165 @@
+#!/bin/bash
+# File: generate_keytab.sh
+
+set -euo pipefail
+
+function usage() {
+    cat <<EOF
+Usage: $0 -p <principal> -w <password> -o <keytab_file> [-e <enctypes>]
+
+Options:
+  -p <principal>     Kerberos principal (e.g. user@EXAMPLE.COM)
+  -w <password>      Password for the principal
+  -o <keytab_file>   Output file path to save the keytab
+  -e <enctypes>      Optional: Comma-separated list of encryption types
+                     Default: aes256-cts-hmac-sha1-96,aes128-cts-hmac-sha1-96,des3-cbc-sha1,arcfour-hmac
+  -h                 Show this help message
+
+Example:
+  $0 -p user@EXAMPLE.COM -w secret123 -o /tmp/user.keytab
+  $0 -p user@EXAMPLE.COM -w secret123 -o /tmp/user.keytab -e aes256-cts-hmac-sha1-96,arcfour-hmac
+EOF
+    exit 1
+}
+
+# Default enctypes
+default_enctypes="aes256-cts-hmac-sha1-96,aes128-cts-hmac-sha1-96,des3-cbc-sha1,arcfour-hmac"
+
+# Parse CLI args
+while getopts ":p:w:o:e:h" opt; do
+  case ${opt} in
+    p) principal="$OPTARG" ;;
+    w) password="$OPTARG" ;;
+    o) keytab_file="$OPTARG" ;;
+    e) input_enctypes="$OPTARG" ;;
+    h) usage ;;
+    \?) echo "❌ Invalid option: -$OPTARG" >&2; usage ;;
+    :) echo "❌ Option -$OPTARG requires an argument." >&2; usage ;;
+  esac
+done
+
+# Validate required inputs
+if [[ -z "${principal:-}" || -z "${password:-}" || -z "${keytab_file:-}" ]]; then
+    echo "❌ Missing required options." >&2
+    usage
+fi
+
+# Parse enctypes (default or user-supplied)
+if [[ -n "${input_enctypes:-}" ]]; then
+    IFS=',' read -ra enctypes <<< "$input_enctypes"
+else
+    IFS=',' read -ra enctypes <<< "$default_enctypes"
+fi
+
+# Check if ktutil is available
+if ! command -v ktutil &> /dev/null; then
+    echo "❌ 'ktutil' command not found. Install krb5-workstation or equivalent." >&2
+    exit 1
+fi
+
+# Create ktutil input
+tmpfile=$(mktemp)
+
+for enctype in "${enctypes[@]}"; do
+cat >> "$tmpfile" <<EOF
+addent -password -p ${principal} -k 1 -e $enctype
+$password
+EOF
+done
+
+cat >> "$tmpfile" <<EOF
+wkt $keytab_file
+EOF
+
+ktutil < "$tmpfile"
+rm -f "$tmpfile"
+
+echo "✅ Keytab generated at: $keytab_file"
+
+
+./generate_keytab.sh -p user@EXAMPLE.COM -w mySecret -o /tmp/user.keytab -e aes256-cts-hmac-sha1-96,arcfour-hmac
+
+
+
+
+
+#!/bin/bash
+# File: generate_keytab.sh
+
+set -euo pipefail
+
+function usage() {
+    cat <<EOF
+Usage: $0 -p <principal> -w <password> -o <keytab_file> [-e <enctypes>]
+
+Options:
+  -p <principal>     Kerberos principal (e.g. user@EXAMPLE.COM)
+  -w <password>      Password for the principal
+  -o <keytab_file>   Output file path to save the keytab
+  -e <enctypes>      Optional: Comma-separated list of encryption types
+                     Default: aes256-cts-hmac-sha1-96,aes128-cts-hmac-sha1-96,des3-cbc-sha1,arcfour-hmac
+  -h                 Show this help message
+
+Example:
+  $0 -p user@EXAMPLE.COM -w secret123 -o /tmp/user.keytab
+EOF
+    exit 1
+}
+
+default_enctypes="aes256-cts-hmac-sha1-96,aes128-cts-hmac-sha1-96,des3-cbc-sha1,arcfour-hmac"
+
+while getopts ":p:w:o:e:h" opt; do
+  case ${opt} in
+    p) principal="$OPTARG" ;;
+    w) password="$OPTARG" ;;
+    o) keytab_file="$OPTARG" ;;
+    e) input_enctypes="$OPTARG" ;;
+    h) usage ;;
+    \?) echo "❌ Invalid option: -$OPTARG" >&2; usage ;;
+    :) echo "❌ Option -$OPTARG requires an argument." >&2; usage ;;
+  esac
+done
+
+if [[ -z "${principal:-}" || -z "${password:-}" || -z "${keytab_file:-}" ]]; then
+    echo "❌ Missing required options." >&2
+    usage
+fi
+
+if [[ -n "${input_enctypes:-}" ]]; then
+    IFS=',' read -ra enctypes <<< "$input_enctypes"
+else
+    IFS=',' read -ra enctypes <<< "$default_enctypes"
+fi
+
+if ! command -v ktutil &> /dev/null; then
+    echo "❌ 'ktutil' command not found. Install krb5-workstation or equivalent." >&2
+    exit 1
+fi
+
+tmpfile=$(mktemp)
+
+for enctype in "${enctypes[@]}"; do
+cat >> "$tmpfile" <<EOF
+addent -password -p ${principal} -k 1 -e $enctype
+$password
+EOF
+done
+
+cat >> "$tmpfile" <<EOF
+wkt $keytab_file
+EOF
+
+ktutil < "$tmpfile"
+rm -f "$tmpfile"
+
+echo "✅ Keytab generated at: $keytab_file"
+
+# Validate the generated keytab
+echo "🔍 Validating keytab with klist..."
+if output=$(klist -k "$keytab_file" 2>/dev/null) && grep -q "$principal" <<< "$output"; then
+    echo "✅ Validation successful: Keytab contains entry for $principal"
+else
+    echo "❌ Validation failed: Keytab may be empty or invalid." >&2
+    klist -k "$keytab_file" || true
+    exit 2
+fi
